@@ -1,0 +1,46 @@
+[package]
+name = "tupm"
+version = "0.1.0"
+authors = ["David Simmons <simmons@davidsimmons.com>"]
+license = "MIT/Apache-2.0"
+homepage = "https://cafbit.com/post/tupm/"
+repository = "https://github.com/simmons/tupm"
+keywords = ["password", "UPM", "UI"]
+categories = ["command-line-utilities"]
+description = "Terminal Universal Password Manager"
+readme = "README.md"
+
+# The "upm" library can be used independently from the tupm application.
+# It provides the core support for reading/writing/syncing UPM
+# databases.
+[lib]
+name = "upm"
+path = "src/upm/lib.rs"
+
+[features]
+# No features by default
+default = []
+# If this feature is enabled, it adds a --test option to load
+# the sampledb.upm with a built-in password.  This is a convenience for
+# development.
+test_database = []
+
+[dependencies]
+openssl = "0.9.14"
+libc = "0.2"
+openssl-sys = "0.9.14"
+cursive = "0.6.0"
+clap = "2.25.0"
+rpassword = "0.4.0"
+chrono = "0.3.0"
+rand = "0.3.15"
+time = "0.1.38"
+multipart = "0.13.1"
+# The multipart crate is using an old version of the mime crate before API
+# changes, so use an old version of reqwest for compatibility.  (Reqwest
+# uses mime by way of hyper.)
+reqwest = "0.6.2"
+
+# Crates used for testing
+[dev-dependencies]
+matches = "0.1.6"
