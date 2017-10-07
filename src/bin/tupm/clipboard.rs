@@ -6,9 +6,11 @@
 extern crate upm;
 
 use std::env;
+use std::io;
 use std::io::Write;
 use std::path::PathBuf;
 use std::process;
+use base64;
 
 /// The environment variable used to store the system path.
 static PATH_ENV: &'static str = "PATH";
@@ -86,8 +88,72 @@ fn clipboard_command() -> Result<process::Command, String> {
     )
 }
 
+// Copy to clipboard using xterm-style using xterm-style OSC 52
+// escape sequences, as specified in:
+// http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
+fn clipboard_osc52(text: &str) {
+    fn is_screen() -> bool {
+        match env::var("TERM") {
+            Ok(t) => t.starts_with("screen"),
+            Err(_) => false,
+        }
+    }
+
+    if ! is_screen() {
+        // The simple case: embed a Base64 representation in the OSC 52
+        // escape sequence.
+        let data = base64::encode(&text);
+        print!("\x1B]52;c;{}\x07", data);
+        io::stdout().flush().unwrap();
+    } else {
+        // If using screen, we require chunking to pass through the data
+        // to the upper-level terminal emulation.
+
+        // Wrap every 76 characters of Base64 output, same as the Linux
+        // base64 command.
+        const WRAP_CHARS: usize = 76;
+        let data = base64::encode(&text);
+        let mut pos = 0usize;
+        let total_length = data.len();
+        let mut first: bool = true;
+        loop {
+            // Get the next slice
+            let slice_top = if pos+WRAP_CHARS <= total_length {
+                pos+WRAP_CHARS
+            } else {
+                total_length
+            };
+            let slice = &data[pos..slice_top];
+
+            // Output the slice
+            if first {
+                first = false;
+                print!("\x1BP\x1B]52;c;{}", slice);
+                io::stdout().flush().unwrap();
+            } else {
+                print!("\x1B\x5C\x1BP{}", slice);
+                io::stdout().flush().unwrap();
+            }
+
+            pos += WRAP_CHARS;
+            if pos >= total_length {
+                break;
+            }
+        }
+        print!("\x07\x1B\\");
+        io::stdout().flush().unwrap();
+    }
+}
+
 /// Copy the provided string to the clipboard, if possible.
 pub fn clipboard_copy(text: &str) -> Result<(), String> {
+    // Use OSC 52 for clipboard copy, but only if this is enabled via
+    // the OSC52 environment variable.
+    if let Ok(_) = env::var("OSC52") {
+        clipboard_osc52(text);
+        return Ok(());
+    }
+
     let mut command = match clipboard_command() {
         Ok(command) => command,
         Err(e) => return Err(e),

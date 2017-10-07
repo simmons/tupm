@@ -36,6 +36,7 @@ chrono = "0.3.0"
 rand = "0.3.15"
 time = "0.1.38"
 multipart = "0.13.1"
+base64 = "0.7.0"
 # The multipart crate is using an old version of the mime crate before API
 # changes, so use an old version of reqwest for compatibility.  (Reqwest
 # uses mime by way of hyper.)

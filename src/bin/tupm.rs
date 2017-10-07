@@ -9,6 +9,7 @@ extern crate clap;
 extern crate cursive;
 extern crate rpassword;
 extern crate upm;
+extern crate base64;
 
 use std::env;
 use std::fs;
