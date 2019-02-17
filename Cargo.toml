@@ -26,21 +26,23 @@ default = []
 test_database = []
 
 [dependencies]
-openssl = "0.9.14"
+openssl = "0.10.16"
 libc = "0.2"
-openssl-sys = "0.9.14"
-cursive = "0.7.1"
+openssl-sys = "0.9.40"
+# cursive = "0.7.1"
+cursive = "0.10"
 clap = "2.25.0"
 rpassword = "0.4.0"
-chrono = "0.3.0"
+chrono = "0.4"
 rand = "0.3.15"
 time = "0.1.38"
-multipart = "0.13.1"
+multipart = "0.15.4"
 base64 = "0.7.0"
 # The multipart crate is using an old version of the mime crate before API
 # changes, so use an old version of reqwest for compatibility.  (Reqwest
 # uses mime by way of hyper.)
-reqwest = "0.6.2"
+reqwest = "0.9"
+mime = { version = "0.3", features = [ ] }
 
 # Crates used for testing
 [dev-dependencies]
