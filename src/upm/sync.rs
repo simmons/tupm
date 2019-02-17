@@ -5,7 +5,6 @@
 use multipart::client::lazy::Multipart;
 use multipart::server::nickel::nickel::hyper::mime;
 use reqwest::multipart;
-use std::borrow::Cow;
 use std::io::Cursor;
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -24,8 +23,6 @@ const UPLOAD_CMD: &'static str = "upload.php";
 const UPM_UPLOAD_FIELD_NAME: &'static str = "userfile";
 /// Abort the operation if the server doesn't respond for this time interval.
 const TIMEOUT_SECS: u64 = 10;
-/// The MIME multipart boundary string.
-const BOUNDARY_ATTRIBUTE: &'static str = "boundary";
 
 /// The UPM sync protocol returns an HTTP body of "OK" if the request was successful, otherwise it
 /// returns one of these error codes: FILE_DOESNT_EXIST, FILE_WASNT_DELETED, FILE_ALREADY_EXISTS,
@@ -145,7 +142,7 @@ impl Repository {
         );
         multipart.add_stream(
             UPM_UPLOAD_FIELD_NAME,
-            Cursor::new(database_bytes),
+            Cursor::new(&database_bytes[..]),
             Some(database_name),
             Some(content_type),
         );
