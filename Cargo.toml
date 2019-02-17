@@ -26,10 +26,10 @@ default = []
 test_database = []
 
 [dependencies]
+dirs = "1.0"
 openssl = "0.10.16"
 libc = "0.2"
 openssl-sys = "0.9.40"
-# cursive = "0.7.1"
 cursive = "0.10"
 clap = "2.25.0"
 rpassword = "0.4.0"

@@ -8,12 +8,12 @@ extern crate clap;
 #[macro_use(wrap_impl)]
 extern crate cursive;
 extern crate base64;
+extern crate dirs;
 extern crate rpassword;
 extern crate upm;
 
 use chrono::prelude::*;
 use clap::{App, Arg, ArgMatches};
-use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process;
@@ -71,7 +71,7 @@ fn test_password(_: &ArgMatches) -> Option<&'static str> {
 /// yet.
 fn get_default_database_path() -> Result<PathBuf, UpmError> {
     // Expand ~/.tupm based on the HOME environment variable
-    let mut path = match env::home_dir().map(|p| p.join(DEFAULT_DATABASE_DIRECTORY)) {
+    let mut path = match dirs::home_dir().map(|p| p.join(DEFAULT_DATABASE_DIRECTORY)) {
         Some(d) => d,
         None => return Err(UpmError::InvalidFilename),
     };
