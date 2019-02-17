@@ -260,7 +260,7 @@ impl AccountSelectView {
         if self.content.is_empty() {
             None
         } else {
-            Some(self.content.selection())
+            self.content.selection()
         }
     }
 
@@ -495,7 +495,9 @@ impl AccountEditView {
                     "Another account already exists with this name.",
                 ))
                 .title("Alert")
-                .button("OK", |s| s.pop_layer()),
+                .button("OK", |s| {
+                    s.pop_layer();
+                }),
             );
             return;
         }
@@ -663,7 +665,7 @@ impl Ui {
     pub fn new(controller_tx: mpsc::Sender<controller::Message>) -> Ui {
         let (ui_tx, ui_rx) = mpsc::channel::<UiMessage>();
         let mut ui = Ui {
-            cursive: Cursive::new(),
+            cursive: Cursive::default(),
             ui_tx,
             ui_rx,
             controller_tx,
@@ -676,9 +678,7 @@ impl Ui {
 
         let mut account_list = AccountSelectView::new(ui.database.clone());
 
-        let mut account_detail = TextView::new("");
-        account_detail.set_scrollable(true);
-        let account_detail = account_detail.with_id(VIEW_ID_DETAIL);
+        let account_detail = TextView::new("").scrollable().with_id(VIEW_ID_DETAIL);
 
         let account_detail_panel = Panel::new(BoxView::new(
             // Hack to make the detail panel consume the rest of the horizontal space.  Full wasn't
@@ -872,7 +872,9 @@ impl Ui {
                         account.name
                     )))
                     .title("Confirm")
-                    .button("No", |s| s.pop_layer())
+                    .button("No", |s| {
+                        s.pop_layer();
+                    })
                     .button("Yes", move |s| {
                         controller_tx_clone
                             .send(controller::Message::AccountEdit(
@@ -1315,7 +1317,7 @@ impl Ui {
 }
 
 /// Return a reference to the currently selected account.
-fn selected_account(mut cursive: &mut Cursive) -> Option<Rc<Account>> {
+fn selected_account(cursive: &mut Cursive) -> Option<Rc<Account>> {
     let select = cursive
         .find_id::<AccountSelectView>(VIEW_ID_SELECT)
         .unwrap();
