@@ -19,6 +19,7 @@ path = "src/upm/lib.rs"
 
 [features]
 # No features by default
+# default = [ "test_database" ]
 default = []
 # If this feature is enabled, it adds a --test option to load
 # the sampledb.upm with a built-in password.  This is a convenience for
