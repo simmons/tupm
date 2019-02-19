@@ -678,7 +678,7 @@ impl Ui {
 
         let mut account_list = AccountSelectView::new(ui.database.clone());
 
-        let account_detail = TextView::new("").scrollable().with_id(VIEW_ID_DETAIL);
+        let account_detail = TextView::new("").with_id(VIEW_ID_DETAIL).scrollable();
 
         let account_detail_panel = Panel::new(BoxView::new(
             // Hack to make the detail panel consume the rest of the horizontal space.  Full wasn't
@@ -691,8 +691,8 @@ impl Ui {
 
         let ui_tx_clone = ui.ui_tx.clone();
         account_list.set_on_select(move |s, account| {
-            let mut detail = match s.find_id::<TextView>(VIEW_ID_DETAIL) {
-                Some(x) => x,
+            let mut detail: ViewRef<TextView> = match s.find_id(VIEW_ID_DETAIL) {
+                Some(acc_det) => acc_det,
                 None => return,
             };
             detail.set_content(render_account_text(account, false));
