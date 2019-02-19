@@ -7,12 +7,12 @@ extern crate upm;
 use std::io;
 use std::path::PathBuf;
 use std::sync::mpsc;
+use tupm;
 use upm::backup::backup;
-use upm::database::{Database, Account};
+use upm::database::{Account, Database};
 use upm::error::UpmError;
 use upm::sync;
 use upm::sync::SyncResult;
-use tupm;
 
 /// The controller maintains a message queue consisting of zero or more of these messages.  Other
 /// components (mostly likely the UI) can add messages to the queue, and the controller will
@@ -96,8 +96,8 @@ impl Controller {
                         "Unrecoverable error",
                         &format!(
                             "The database could not be opened for the \
-                            following reason:\n\n{}\n\nThe program will \
-                            now exit.",
+                             following reason:\n\n{}\n\nThe program will \
+                             now exit.",
                             e
                         ),
                     );
@@ -106,8 +106,7 @@ impl Controller {
                 }
             };
             retry
-        }
-        {}
+        } {}
         database = match database_try {
             Some(d) => d,
             None => Database::new(),
@@ -139,10 +138,9 @@ impl Controller {
     fn password_prompt(ui: &mut tupm::ui::Ui) -> Option<String> {
         let mut password = None;
         while password.is_none() {
-            password = match ui.password_dialog(
-                "Please provide a master password for the database:",
-                true,
-            ) {
+            password = match ui
+                .password_dialog("Please provide a master password for the database:", true)
+            {
                 Some(p) => Some(p),
                 None => {
                     if ui.yesno_dialog(
@@ -150,8 +148,7 @@ impl Controller {
                         "A master password for the database is required to continue.",
                         "OK",
                         "Exit",
-                    )
-                    {
+                    ) {
                         ui.quit();
                         return None;
                     } else {
@@ -280,9 +277,8 @@ impl Controller {
                         ));
                     }
                     Err(e) => {
-                        self.ui.set_statusline(
-                            &format!("error reloading local database: {}", e),
-                        );
+                        self.ui
+                            .set_statusline(&format!("error reloading local database: {}", e));
                     }
                 };
                 self.database.set_synced();
@@ -303,7 +299,7 @@ impl Controller {
                     // Prompt for remote database password and try again
                     let password = self.ui.password_dialog(
                         "The remote database uses a different password.  \
-                        Please supply the password to the remote database:",
+                         Please supply the password to the remote database:",
                         true,
                     );
                     if let Some(password) = password {
@@ -314,16 +310,14 @@ impl Controller {
                 } else {
                     // Prevent arbitrary-depth recursion by only asking for the remote database
                     // password once.
-                    self.ui.notice_dialog(
-                        "Bad password",
-                        "Bad password for the remote database.",
-                    );
+                    self.ui
+                        .notice_dialog("Bad password", "Bad password for the remote database.");
                     self.ui.set_statusline(&format!(
                         "Cannot sync: Bad password for the remote database."
                     ));
-                    Err(UpmError::Sync(
-                        String::from("Bad password for the remote database."),
-                    ))
+                    Err(UpmError::Sync(String::from(
+                        "Bad password for the remote database.",
+                    )))
                 }
             }
             Err(e) => {
@@ -355,9 +349,10 @@ impl Controller {
         if upm::PARANOID_BACKUPS {
             if let Some(f) = self.database.path() {
                 if let Err(e) = backup(&f) {
-                    return Err(UpmError::Backup(
-                        format!("Error making backup; not saved: {}", e),
-                    ));
+                    return Err(UpmError::Backup(format!(
+                        "Error making backup; not saved: {}",
+                        e
+                    )));
                 }
             }
         }

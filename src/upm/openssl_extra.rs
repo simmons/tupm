@@ -97,7 +97,6 @@ pub fn pkcs12_key_gen(
     key: &mut [u8],
     hash: openssl::hash::MessageDigest,
 ) -> Result<(), openssl::error::ErrorStack> {
-
     // Convert password to a BMPString
     let mut pass = str_to_bmpstring(pass);
 
@@ -141,11 +140,10 @@ mod tests {
 
     #[test]
     fn test_decompose_error_code() {
-        assert_eq!(decompose_error_code(0x06000064), (
-            ERR_LIB_EVP,
-            0,
-            EVP_R_BAD_DECRYPT,
-        ));
+        assert_eq!(
+            decompose_error_code(0x06000064),
+            (ERR_LIB_EVP, 0, EVP_R_BAD_DECRYPT,)
+        );
         assert_eq!(decompose_error_code(0x12345678), (0x12, 0x345, 0x678));
         assert_eq!(decompose_error_code(0x00000000), (0x00, 0x000, 0x000));
         assert_eq!(decompose_error_code(0xFFFFFFFF), (0xFF, 0xFFF, 0xFFF));

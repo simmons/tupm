@@ -7,9 +7,9 @@ use reqwest;
 use reqwest::mime;
 use std::io::Cursor;
 use std::io::Read;
+use std::path::{Path, PathBuf};
 use std::str;
 use std::time::Duration;
-use std::path::{Path, PathBuf};
 
 use backup;
 use database::Database;
@@ -86,7 +86,8 @@ impl Repository {
         let url = self.make_url(database_name);
 
         // Send request
-        let mut response = self.client
+        let mut response = self
+            .client
             .get(&url)
             .basic_auth(self.http_username.clone(), Some(self.http_password.clone()))
             .send()?;
@@ -108,7 +109,8 @@ impl Repository {
         let url = self.make_url(DELETE_CMD);
 
         // Send request
-        let mut response = self.client
+        let mut response = self
+            .client
             .post(&url)
             .basic_auth(self.http_username.clone(), Some(self.http_password.clone()))
             .form(&[("fileToDelete", database_name)])
@@ -145,20 +147,17 @@ impl Repository {
         multipart_prepared.read_to_end(&mut multipart_buffer)?;
 
         // Send request
-        let mut response = self.client
+        let mut response = self
+            .client
             .post(&url)
             .basic_auth(self.http_username.clone(), Some(self.http_password.clone()))
             .header(reqwest::header::ContentType(mime::Mime(
                 mime::TopLevel::Multipart,
                 mime::SubLevel::FormData,
-                vec![
-                    (
-                        mime::Attr::Ext(String::from(BOUNDARY_ATTRIBUTE)),
-                        mime::Value::Ext(
-                            String::from(multipart_prepared.boundary()),
-                        )
-                    ),
-                ],
+                vec![(
+                    mime::Attr::Ext(String::from(BOUNDARY_ATTRIBUTE)),
+                    mime::Value::Ext(String::from(multipart_prepared.boundary())),
+                )],
             )))
             .body(multipart_buffer)
             .send()?;
@@ -317,10 +316,7 @@ pub fn sync(database: &Database, remote_password: Option<&str>) -> Result<SyncRe
 
         // Upload the local database to the remote.  Make sure to re-encrypt with the local
         // password, in case it has been changed recently.
-        repo.upload(
-            database_name,
-            database.save_to_bytes(local_password)?,
-        )?;
+        repo.upload(database_name, database.save_to_bytes(local_password)?)?;
         Ok(SyncResult::RemoteSynced)
     } else if database.sync_revision < remote_database.sync_revision {
         // Replace the local database with the remote database
