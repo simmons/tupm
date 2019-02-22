@@ -691,12 +691,10 @@ impl Ui {
 
         let ui_tx_clone = ui.ui_tx.clone();
         account_list.set_on_select(move |s, account| {
-            let mut detail: ViewRef<TextView> = match s.find_id(VIEW_ID_DETAIL) {
-                Some(acc_det) => acc_det,
-                None => return,
-            };
-            detail.set_content(render_account_text(account, false));
-            ui_tx_clone.send(UiMessage::UpdateStatus).unwrap();
+            s.call_on_id(VIEW_ID_DETAIL, |detail: &mut TextView| {
+                detail.set_content(render_account_text(account, false));
+                ui_tx_clone.send(UiMessage::UpdateStatus).unwrap();
+            });
         });
 
         let ui_tx_clone = ui.ui_tx.clone();
