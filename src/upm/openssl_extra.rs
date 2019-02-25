@@ -9,11 +9,11 @@ extern crate openssl_sys as ffi;
 use self::libc::{c_int, c_uchar};
 
 /// An error with lib `ERR_LIB_EVP` indicates the error was returned from an OpenSSL EVP function.
-static ERR_LIB_EVP: u8 = 6;
+const ERR_LIB_EVP: u8 = 6;
 
 /// An error with this reason code indicates a decryption failure, which usually means that the
 /// provided password was incorrect.
-static EVP_R_BAD_DECRYPT: u16 = 100;
+const EVP_R_BAD_DECRYPT: u16 = 100;
 
 /// Decompose an error code into a 3-tuple containing the library, function, and reason codes.
 fn decompose_error_code(code: u32) -> (u8, u16, u16) {
@@ -97,7 +97,6 @@ pub fn pkcs12_key_gen(
     key: &mut [u8],
     hash: openssl::hash::MessageDigest,
 ) -> Result<(), openssl::error::ErrorStack> {
-
     // Convert password to a BMPString
     let mut pass = str_to_bmpstring(pass);
 
@@ -141,11 +140,10 @@ mod tests {
 
     #[test]
     fn test_decompose_error_code() {
-        assert_eq!(decompose_error_code(0x06000064), (
-            ERR_LIB_EVP,
-            0,
-            EVP_R_BAD_DECRYPT,
-        ));
+        assert_eq!(
+            decompose_error_code(0x06000064),
+            (ERR_LIB_EVP, 0, EVP_R_BAD_DECRYPT,)
+        );
         assert_eq!(decompose_error_code(0x12345678), (0x12, 0x345, 0x678));
         assert_eq!(decompose_error_code(0x00000000), (0x00, 0x000, 0x000));
         assert_eq!(decompose_error_code(0xFFFFFFFF), (0xFF, 0xFFF, 0xFFF));

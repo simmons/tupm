@@ -4,7 +4,6 @@
 //!
 //! A terminal-based interface to UPM databases (tupm) is provided as an example application.
 
-extern crate multipart;
 extern crate rand;
 extern crate reqwest;
 extern crate time;

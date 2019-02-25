@@ -3,13 +3,7 @@
 extern crate clap;
 extern crate upm;
 
-use std::cell::Cell;
-use std::cell::RefCell;
-use std::ops::Deref;
-use std::rc::Rc;
-use std::sync::mpsc;
 use cursive;
-use cursive::Cursive;
 use cursive::align::HAlign;
 use cursive::event::Event::{Char, CtrlChar};
 use cursive::event::Key;
@@ -17,21 +11,27 @@ use cursive::menu::MenuItem;
 use cursive::menu::MenuTree;
 use cursive::view::*;
 use cursive::views::*;
+use cursive::Cursive;
+use std::cell::Cell;
+use std::cell::RefCell;
+use std::ops::Deref;
+use std::rc::Rc;
+use std::sync::mpsc;
 use tupm::clipboard::clipboard_copy;
 use tupm::controller;
-use upm::database::{Database, Account};
+use upm::database::{Account, Database};
 
 // View ids.  These are used to reference specific views within the Cursive view tree.
-static VIEW_ID_SELECT: &'static str = "select";
-static VIEW_ID_DETAIL: &'static str = "detail";
-static VIEW_ID_FILTER: &'static str = "filter";
-static VIEW_ID_REVISION: &'static str = "revision";
-static VIEW_ID_MODIFIED: &'static str = "modified";
-static VIEW_ID_COUNT: &'static str = "count";
-static VIEW_ID_STATUSLINE: &'static str = "statusline";
-static VIEW_ID_EDIT: &'static str = "edit";
-static VIEW_ID_MODAL: &'static str = "modal";
-static VIEW_ID_INPUT: &'static str = "input";
+const VIEW_ID_SELECT: &'static str = "select";
+const VIEW_ID_DETAIL: &'static str = "detail";
+const VIEW_ID_FILTER: &'static str = "filter";
+const VIEW_ID_REVISION: &'static str = "revision";
+const VIEW_ID_MODIFIED: &'static str = "modified";
+const VIEW_ID_COUNT: &'static str = "count";
+const VIEW_ID_STATUSLINE: &'static str = "statusline";
+const VIEW_ID_EDIT: &'static str = "edit";
+const VIEW_ID_MODAL: &'static str = "modal";
+const VIEW_ID_INPUT: &'static str = "input";
 
 // Human-readable field labels
 const FIELD_NAME: &'static str = "Account";
@@ -48,7 +48,7 @@ struct Field {
 }
 
 /// Provide a description of each account field.
-static FIELDS: [Field; 5] = [
+const FIELDS: [Field; 5] = [
     Field {
         name: FIELD_NAME,
         secret: false,
@@ -179,10 +179,9 @@ impl KeyConfig {
     where
         F: Fn(&mut Cursive) + 'static,
     {
-        self.callbacks.borrow_mut().insert(
-            event.into(),
-            Callback::from_fn(cb),
-        );
+        self.callbacks
+            .borrow_mut()
+            .insert(event.into(), Callback::from_fn(cb));
         self
     }
 
@@ -258,11 +257,7 @@ impl AccountSelectView {
 
     /// Return the currently selected account, if any.
     pub fn selection(&self) -> Option<Rc<Account>> {
-        if self.content.is_empty() {
-            None
-        } else {
-            Some(self.content.selection())
-        }
+        self.content.selection()
     }
 
     /// Clear the list.
@@ -414,9 +409,9 @@ impl AccountEditView {
     /// Populate a UI field with a value.
     fn put(&mut self, field_name: &str, value: &str) {
         let id = format!("{}_{}", VIEW_ID_EDIT, field_name);
-        if FIELDS.into_iter().any(
-            |f| f.name == field_name && f.multiline,
-        )
+        if FIELDS
+            .into_iter()
+            .any(|f| f.name == field_name && f.multiline)
         {
             self.find_id(&id, |edit_view: &mut TextArea| edit_view.set_content(value));
         } else {
@@ -428,9 +423,9 @@ impl AccountEditView {
     fn get(&mut self, field_name: &str) -> String {
         let id = format!("{}_{}", VIEW_ID_EDIT, field_name);
 
-        if FIELDS.into_iter().any(
-            |f| f.name == field_name && f.multiline,
-        )
+        if FIELDS
+            .into_iter()
+            .any(|f| f.name == field_name && f.multiline)
         {
             match self.find_id(&id, |edit_view: &mut TextArea| {
                 String::from(edit_view.get_content())
@@ -494,8 +489,11 @@ impl AccountEditView {
             cursive.add_layer(
                 Dialog::around(TextView::new(
                     "Another account already exists with this name.",
-                )).title("Alert")
-                    .button("OK", |s| s.pop_layer()),
+                ))
+                .title("Alert")
+                .button("OK", |s| {
+                    s.pop_layer();
+                }),
             );
             return;
         }
@@ -562,8 +560,8 @@ impl DatabaseEditView {
         v_layout.add_child(TextView::new("Ctrl-X: Apply changes"));
         v_layout.add_child(TextView::new(
             "The sync credentials must exactly match the name of an \
-            account which holds the HTTP Basic Authentication username \
-            and password.",
+             account which holds the HTTP Basic Authentication username \
+             and password.",
         ));
 
         DatabaseEditView {
@@ -582,11 +580,14 @@ impl DatabaseEditView {
         let database_edit = DatabaseEditView::new(
             &database.borrow().sync_url,
             &database.borrow().sync_credentials,
-        ).with_id(VIEW_ID_EDIT);
+        )
+        .with_id(VIEW_ID_EDIT);
         let controller_tx_clone = controller_tx.clone();
         let key_override = KeyOverrideView::new(database_edit).register(
             cursive::event::Event::CtrlChar('x'),
-            move |s| { DatabaseEditView::apply(s, &controller_tx_clone); },
+            move |s| {
+                DatabaseEditView::apply(s, &controller_tx_clone);
+            },
         );
         let controller_tx_clone = controller_tx.clone();
         cursive.add_layer(
@@ -658,10 +659,9 @@ impl Ui {
     /// Create a new Ui object.  The provided `mpsc` sender will be used by the UI to send messages
     /// to the controller.
     pub fn new(controller_tx: mpsc::Sender<controller::Message>) -> Ui {
-
         let (ui_tx, ui_rx) = mpsc::channel::<UiMessage>();
         let mut ui = Ui {
-            cursive: Cursive::new(),
+            cursive: Cursive::default(),
             ui_tx,
             ui_rx,
             controller_tx,
@@ -674,9 +674,7 @@ impl Ui {
 
         let mut account_list = AccountSelectView::new(ui.database.clone());
 
-        let mut account_detail = TextView::new("");
-        account_detail.set_scrollable(true);
-        let account_detail = account_detail.with_id(VIEW_ID_DETAIL);
+        let account_detail = TextView::new("").with_id(VIEW_ID_DETAIL).scrollable();
 
         let account_detail_panel = Panel::new(BoxView::new(
             // Hack to make the detail panel consume the rest of the horizontal space.  Full wasn't
@@ -689,12 +687,10 @@ impl Ui {
 
         let ui_tx_clone = ui.ui_tx.clone();
         account_list.set_on_select(move |s, account| {
-            let mut detail = match s.find_id::<TextView>(VIEW_ID_DETAIL) {
-                Some(x) => x,
-                None => return,
-            };
-            detail.set_content(render_account_text(account, false));
-            ui_tx_clone.send(UiMessage::UpdateStatus).unwrap();
+            s.call_on_id(VIEW_ID_DETAIL, |detail: &mut TextView| {
+                detail.set_content(render_account_text(account, false));
+                ui_tx_clone.send(UiMessage::UpdateStatus).unwrap();
+            });
         });
 
         let ui_tx_clone = ui.ui_tx.clone();
@@ -711,8 +707,8 @@ impl Ui {
             }
         });
 
-        let account_list_key_override = KeyOverrideView::new(account_list.with_id(VIEW_ID_SELECT))
-            .ignore('/');
+        let account_list_key_override =
+            KeyOverrideView::new(account_list.with_id(VIEW_ID_SELECT)).ignore('/');
         let account_list_keys = account_list_key_override.get_config();
 
         let account_list_panel = Panel::new(BoxView::new(
@@ -732,9 +728,9 @@ impl Ui {
             let details = match s.find_id::<AccountSelectView>(VIEW_ID_SELECT) {
                 Some(mut account_list) => {
                     account_list.filter(text);
-                    account_list.selection().map(
-                        |a| render_account_text(&a, false),
-                    )
+                    account_list
+                        .selection()
+                        .map(|a| render_account_text(&a, false))
                 }
                 None => None,
             };
@@ -805,7 +801,9 @@ impl Ui {
         let database_clone1 = ui.database.clone();
         let database_clone2 = ui.database.clone();
 
-        let do_focus_filter = Callback::from_fn(|s| { let _ = s.focus_id(VIEW_ID_FILTER); });
+        let do_focus_filter = Callback::from_fn(|s| {
+            let _ = s.focus_id(VIEW_ID_FILTER);
+        });
 
         let do_clipboard_copy_username = Callback::from_fn(|s| {
             match selected_account(s) {
@@ -848,38 +846,41 @@ impl Ui {
             };
         });
 
-        let do_new_account = Callback::from_fn(move |_| if sync_guard(
-            &database_clone1.borrow(),
-            &ui_tx_clone1,
-        )
-        {
-            return;
-        } else {
-            ui_tx_clone1.send(UiMessage::ShowAccountEdit(None)).unwrap();
+        let do_new_account = Callback::from_fn(move |_| {
+            if sync_guard(&database_clone1.borrow(), &ui_tx_clone1) {
+                return;
+            } else {
+                ui_tx_clone1.send(UiMessage::ShowAccountEdit(None)).unwrap();
+            }
         });
 
-        let do_delete_account =
-            Callback::from_fn(move |s| if let Some(account) = selected_account(s) {
+        let do_delete_account = Callback::from_fn(move |s| {
+            if let Some(account) = selected_account(s) {
                 if sync_guard(&database_clone2.borrow(), &ui_tx_clone2) {
                     return;
                 }
                 let controller_tx_clone = controller_tx_clone1.clone();
                 s.add_layer(
-                    Dialog::around(TextView::new(
-                        format!("Really delete account \"{}\"?", account.name),
-                    )).title("Confirm")
-                        .button("No", |s| s.pop_layer())
-                        .button("Yes", move |s| {
-                            controller_tx_clone
-                                .send(controller::Message::AccountEdit(
-                                    Some((*account).clone()),
-                                    None,
-                                ))
-                                .unwrap();
-                            s.pop_layer();
-                        }),
+                    Dialog::around(TextView::new(format!(
+                        "Really delete account \"{}\"?",
+                        account.name
+                    )))
+                    .title("Confirm")
+                    .button("No", |s| {
+                        s.pop_layer();
+                    })
+                    .button("Yes", move |s| {
+                        controller_tx_clone
+                            .send(controller::Message::AccountEdit(
+                                Some((*account).clone()),
+                                None,
+                            ))
+                            .unwrap();
+                        s.pop_layer();
+                    }),
                 );
-            });
+            }
+        });
 
         let do_sync = Callback::from_fn(move |_| {
             controller_tx_clone2
@@ -901,8 +902,9 @@ impl Ui {
                 .unwrap();
         });
 
-        let do_refresh =
-            Callback::from_fn(move |_| { ui_tx_clone5.send(UiMessage::Refresh).unwrap(); });
+        let do_refresh = Callback::from_fn(move |_| {
+            ui_tx_clone5.send(UiMessage::Refresh).unwrap();
+        });
 
         ////////////////////////////////////////////////////////////
         // Menu bar
@@ -919,36 +921,34 @@ impl Ui {
         let mut file_menu = MenuTree::new();
         file_menu.children = vec![MenuItem::Leaf(String::from("Quit ^X"), do_quit.clone())];
         let mut database_menu = MenuTree::new();
-        database_menu.children =
-            vec![
-                MenuItem::Leaf(String::from("Sync Database            ^Y"), do_sync.clone()),
-                MenuItem::Leaf(
-                    String::from("Edit Database Properties ^K"),
-                    do_edit_database.clone()
-                ),
-                MenuItem::Leaf(String::from("Change Database Password"), do_change_password),
-            ];
+        database_menu.children = vec![
+            MenuItem::Leaf(String::from("Sync Database            ^Y"), do_sync.clone()),
+            MenuItem::Leaf(
+                String::from("Edit Database Properties ^K"),
+                do_edit_database.clone(),
+            ),
+            MenuItem::Leaf(String::from("Change Database Password"), do_change_password),
+        ];
         let mut account_menu = MenuTree::new();
-        account_menu.children =
-            vec![
-                MenuItem::Leaf(String::from("New Account     ^N"), do_new_account.clone()),
-                MenuItem::Leaf(
-                    String::from("Delete Account  ^D"),
-                    do_delete_account.clone()
-                ),
-                MenuItem::Leaf(
-                    String::from("Copy Username   ^U"),
-                    do_clipboard_copy_username.clone()
-                ),
-                MenuItem::Leaf(
-                    String::from("Copy Password   ^P"),
-                    do_clipboard_copy_password.clone()
-                ),
-                MenuItem::Leaf(
-                    String::from("Reveal Password ^R"),
-                    do_reveal_password.clone()
-                ),
-            ];
+        account_menu.children = vec![
+            MenuItem::Leaf(String::from("New Account     ^N"), do_new_account.clone()),
+            MenuItem::Leaf(
+                String::from("Delete Account  ^D"),
+                do_delete_account.clone(),
+            ),
+            MenuItem::Leaf(
+                String::from("Copy Username   ^U"),
+                do_clipboard_copy_username.clone(),
+            ),
+            MenuItem::Leaf(
+                String::from("Copy Password   ^P"),
+                do_clipboard_copy_password.clone(),
+            ),
+            MenuItem::Leaf(
+                String::from("Reveal Password ^R"),
+                do_reveal_password.clone(),
+            ),
+        ];
         ui.cursive
             .menubar()
             .add_subtree("File", file_menu)
@@ -993,20 +993,17 @@ impl Ui {
         ////////////////////////////////////////////////////////////
 
         // Escape key: Pop layers, unless the main layer is active, in which case quit.
-        ui.cursive.add_global_callback(
-            Key::Esc,
-            |s| if s.screen().layer_sizes().len() > 1 {
+        ui.cursive.add_global_callback(Key::Esc, |s| {
+            if s.screen().layer_sizes().len() > 1 {
                 s.pop_layer();
             } else {
                 s.select_menubar();
-            },
-        );
+            }
+        });
 
         // Ctrl-L: Refresh screen
-        ui.cursive.add_global_callback(
-            CtrlChar('l'),
-            move |s| do_refresh(s),
-        );
+        ui.cursive
+            .add_global_callback(CtrlChar('l'), move |s| do_refresh(s));
 
         ui
     }
@@ -1086,22 +1083,18 @@ impl Ui {
     /// Handle UiMessage::ShowAccountEdit messages.
     fn handle_show_account_edit(&mut self, account: Option<Account>) {
         match account {
-            Some(a) => {
-                AccountEditView::show(
-                    &mut self.cursive,
-                    self.database.clone(),
-                    self.controller_tx.clone(),
-                    Some(&a),
-                )
-            }
-            None => {
-                AccountEditView::show(
-                    &mut self.cursive,
-                    self.database.clone(),
-                    self.controller_tx.clone(),
-                    None,
-                )
-            }
+            Some(a) => AccountEditView::show(
+                &mut self.cursive,
+                self.database.clone(),
+                self.controller_tx.clone(),
+                Some(&a),
+            ),
+            None => AccountEditView::show(
+                &mut self.cursive,
+                self.database.clone(),
+                self.controller_tx.clone(),
+                None,
+            ),
         };
     }
 
@@ -1117,11 +1110,13 @@ impl Ui {
     /// Handle UiMessage::RequireSync messages.
     fn handle_require_sync(&mut self) {
         let text = "The database should be synchronized before editing \
-            accounts.  Synchronize now?";
+                    accounts.  Synchronize now?";
         let controller_tx_clone = self.controller_tx.clone();
         self.cursive.add_layer(
             Dialog::around(TextView::new(text))
-                .button("No", |s| { s.pop_layer(); })
+                .button("No", |s| {
+                    s.pop_layer();
+                })
                 .button("Yes", move |s| {
                     s.pop_layer();
                     controller_tx_clone.send(controller::Message::Sync).unwrap();
@@ -1185,7 +1180,9 @@ impl Ui {
             let result = result.clone();
             self.modal_dialog(
                 Dialog::around(TextView::new(text))
-                    .button(false_text, |s| { s.pop_layer(); })
+                    .button(false_text, |s| {
+                        s.pop_layer();
+                    })
                     .button(true_text, move |s| {
                         result.set(true);
                         s.pop_layer();
@@ -1203,7 +1200,9 @@ impl Ui {
     pub fn notice_dialog(&mut self, title: &str, text: &str) {
         self.modal_dialog(
             Dialog::around(TextView::new(text))
-                .button("OK", move |s| { s.pop_layer(); })
+                .button("OK", move |s| {
+                    s.pop_layer();
+                })
                 .title(title),
         );
     }
@@ -1225,9 +1224,9 @@ impl Ui {
                 s.focus_id(VIEW_ID_SELECT).ok();
             });
             editview.set_secret(secret);
-            let layout = LinearLayout::vertical().child(TextView::new(text)).child(
-                editview.with_id(VIEW_ID_INPUT),
-            );
+            let layout = LinearLayout::vertical()
+                .child(TextView::new(text))
+                .child(editview.with_id(VIEW_ID_INPUT));
             self.modal_dialog(
                 Dialog::around(layout)
                     .button("Ok", move |s| {
@@ -1255,9 +1254,10 @@ impl Ui {
     fn update_detail(&mut self) {
         let details = match self.cursive.find_id::<AccountSelectView>(VIEW_ID_SELECT) {
             Some(account_list) => {
-                match account_list.selection().map(
-                    |a| render_account_text(&a, false),
-                ) {
+                match account_list
+                    .selection()
+                    .map(|a| render_account_text(&a, false))
+                {
                     Some(details) => details,
                     None => String::from(""),
                 }
@@ -1311,7 +1311,7 @@ impl Ui {
 }
 
 /// Return a reference to the currently selected account.
-fn selected_account(mut cursive: &mut Cursive) -> Option<Rc<Account>> {
+fn selected_account(cursive: &mut Cursive) -> Option<Rc<Account>> {
     let select = cursive
         .find_id::<AccountSelectView>(VIEW_ID_SELECT)
         .unwrap();

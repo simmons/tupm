@@ -5,28 +5,28 @@
 
 extern crate upm;
 
+use base64;
 use std::env;
 use std::io;
 use std::io::Write;
 use std::path::PathBuf;
 use std::process;
-use base64;
 
 /// The environment variable used to store the system path.
-static PATH_ENV: &'static str = "PATH";
+const PATH_ENV: &'static str = "PATH";
 /// The environment variable used to store the X11 display.  If this environment variable is not
 /// set, we assume that we are not running in an X11 environment.
 #[cfg(target_os = "linux")]
-static DISPLAY_ENV: &'static str = "DISPLAY";
+const DISPLAY_ENV: &'static str = "DISPLAY";
 /// The name of the Mac OS `pbcopy` command used to copy data to the clipboard.
 #[cfg(target_os = "macos")]
-static PBCOPY_COMMAND: &'static str = "pbcopy";
+const PBCOPY_COMMAND: &'static str = "pbcopy";
 /// The name of the X11 `xsel` command used to copy data to the clipboard.
 #[cfg(target_os = "linux")]
-static XSEL_COMMAND: &'static str = "xsel";
+const XSEL_COMMAND: &'static str = "xsel";
 /// The name of the X11 `xclip` command used to copy data to the clipboard.
 #[cfg(target_os = "linux")]
-static XCLIP_COMMAND: &'static str = "xclip";
+const XCLIP_COMMAND: &'static str = "xclip";
 
 /// Attempt to find the specified command on the path.
 fn find_in_path(name: &str) -> Option<PathBuf> {
@@ -66,26 +66,22 @@ fn clipboard_command() -> Result<process::Command, String> {
             command.arg("-ib");
             Ok(command)
         }
-        None => {
-            match find_in_path(XCLIP_COMMAND) {
-                Some(path) => {
-                    let mut command = process::Command::new(path);
-                    command.arg("-selection");
-                    command.arg("clipboard");
-                    Ok(command)
-                }
-                None => Err(format!("Cannot find xsel or xclip command in path.")),
+        None => match find_in_path(XCLIP_COMMAND) {
+            Some(path) => {
+                let mut command = process::Command::new(path);
+                command.arg("-selection");
+                command.arg("clipboard");
+                Ok(command)
             }
-        }
+            None => Err(format!("Cannot find xsel or xclip command in path.")),
+        },
     }
 }
 
 /// Return the platform-specific external command used to copy data to the clipboard.
 #[cfg(not(any(target_os = "macos", target_os = "linux")))]
 fn clipboard_command() -> Result<process::Command, String> {
-    Err(
-        "Clipboard support not implemented for this operating system.".to_string(),
-    )
+    Err("Clipboard support not implemented for this operating system.".to_string())
 }
 
 // Copy to clipboard using xterm-style using xterm-style OSC 52
@@ -99,7 +95,7 @@ fn clipboard_osc52(text: &str) {
         }
     }
 
-    if ! is_screen() {
+    if !is_screen() {
         // The simple case: embed a Base64 representation in the OSC 52
         // escape sequence.
         let data = base64::encode(&text);
@@ -118,8 +114,8 @@ fn clipboard_osc52(text: &str) {
         let mut first: bool = true;
         loop {
             // Get the next slice
-            let slice_top = if pos+WRAP_CHARS <= total_length {
-                pos+WRAP_CHARS
+            let slice_top = if pos + WRAP_CHARS <= total_length {
+                pos + WRAP_CHARS
             } else {
                 total_length
             };
@@ -163,7 +159,8 @@ pub fn clipboard_copy(text: &str) -> Result<(), String> {
         .stdin(process::Stdio::piped())
         .stdout(process::Stdio::null())
         .stderr(process::Stdio::null())
-        .spawn() {
+        .spawn()
+    {
         Err(e) => {
             return Err(format!("Cannot spawn clipboard copy command: {}", e));
         }

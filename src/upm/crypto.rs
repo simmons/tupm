@@ -20,8 +20,8 @@
 
 extern crate openssl;
 
-use openssl_extra;
 use error::UpmError;
+use openssl_extra;
 
 const KEY_MATERIAL_ID: u8 = 1;
 const IV_MATERIAL_ID: u8 = 2;

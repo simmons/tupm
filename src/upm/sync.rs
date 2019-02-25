@@ -2,14 +2,11 @@
 //! remote repository should be an HTTP or HTTPS server supporting the "download", "upload", and
 //! "delete" primitives of the UPM sync protocol.
 
-use multipart::client::lazy::Multipart;
-use reqwest;
-use reqwest::mime;
-use std::io::Cursor;
+use reqwest::multipart;
 use std::io::Read;
+use std::path::{Path, PathBuf};
 use std::str;
 use std::time::Duration;
-use std::path::{Path, PathBuf};
 
 use backup;
 use database::Database;
@@ -23,8 +20,6 @@ const UPLOAD_CMD: &'static str = "upload.php";
 const UPM_UPLOAD_FIELD_NAME: &'static str = "userfile";
 /// Abort the operation if the server doesn't respond for this time interval.
 const TIMEOUT_SECS: u64 = 10;
-/// The MIME multipart boundary string.
-const BOUNDARY_ATTRIBUTE: &'static str = "boundary";
 
 /// The UPM sync protocol returns an HTTP body of "OK" if the request was successful, otherwise it
 /// returns one of these error codes: FILE_DOESNT_EXIST, FILE_WASNT_DELETED, FILE_ALREADY_EXISTS,
@@ -33,6 +28,9 @@ const UPM_SUCCESS: &'static str = "OK";
 
 /// UPM sync protocol responses should never be longer than this size.
 const UPM_MAX_RESPONSE_CODE_LENGTH: usize = 64;
+
+/// The MIME type used when uploading a database.
+const DATABASE_MIME_TYPE: &'static str = "application/octet-stream";
 
 impl From<reqwest::Error> for UpmError {
     /// Convert a reqwest error into a `UpmError`.
@@ -62,17 +60,18 @@ struct Repository {
 
 impl Repository {
     /// Create a new `Repository` struct with the provided URL and credentials.
-    fn new(url: &str, http_username: &str, http_password: &str) -> Repository {
+    fn new(url: &str, http_username: &str, http_password: &str) -> Result<Repository, UpmError> {
         // Create a new reqwest client.
-        let mut client = reqwest::Client::new().unwrap();
-        client.timeout(Duration::from_secs(TIMEOUT_SECS));
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(TIMEOUT_SECS))
+            .build()?;
 
-        Repository {
+        Ok(Repository {
             url: String::from(url),
             http_username: String::from(http_username),
             http_password: String::from(http_password),
             client,
-        }
+        })
     }
 
     //
@@ -86,7 +85,8 @@ impl Repository {
         let url = self.make_url(database_name);
 
         // Send request
-        let mut response = self.client
+        let mut response = self
+            .client
             .get(&url)
             .basic_auth(self.http_username.clone(), Some(self.http_password.clone()))
             .send()?;
@@ -94,7 +94,7 @@ impl Repository {
         // Process response
         if !response.status().is_success() {
             return match response.status() {
-                &reqwest::StatusCode::NotFound => Err(UpmError::SyncDatabaseNotFound),
+                reqwest::StatusCode::NOT_FOUND => Err(UpmError::SyncDatabaseNotFound),
                 _ => Err(UpmError::Sync(format!("{}", response.status()))),
             };
         }
@@ -108,7 +108,8 @@ impl Repository {
         let url = self.make_url(DELETE_CMD);
 
         // Send request
-        let mut response = self.client
+        let mut response = self
+            .client
             .post(&url)
             .basic_auth(self.http_username.clone(), Some(self.http_password.clone()))
             .form(&[("fileToDelete", database_name)])
@@ -124,44 +125,16 @@ impl Repository {
     fn upload(&mut self, database_name: &str, database_bytes: Vec<u8>) -> Result<(), UpmError> {
         let url: String = self.make_url(UPLOAD_CMD);
 
-        // Construct a multipart body
-        let mut multipart = Multipart::new();
-        let content_type = mime::Mime(
-            mime::TopLevel::Application,
-            mime::SubLevel::OctetStream,
-            vec![],
-        );
-        multipart.add_stream(
-            UPM_UPLOAD_FIELD_NAME,
-            Cursor::new(database_bytes),
-            Some(database_name),
-            Some(content_type),
-        );
-        let mut multipart_prepared = match multipart.prepare() {
-            Ok(p) => p,
-            Err(_) => return Err(UpmError::Sync(String::from("Cannot prepare file upload"))),
-        };
-        let mut multipart_buffer: Vec<u8> = vec![];
-        multipart_prepared.read_to_end(&mut multipart_buffer)?;
+        // Thanks to Sean (seanmonstar) for helping to translate this code to multipart code
+        // of reqwest
+        let part = multipart::Part::bytes(database_bytes.clone())
+            .file_name(database_name.to_string())
+            .mime_str(DATABASE_MIME_TYPE)?;
+
+        let form = multipart::Form::new().part(UPM_UPLOAD_FIELD_NAME, part);
 
         // Send request
-        let mut response = self.client
-            .post(&url)
-            .basic_auth(self.http_username.clone(), Some(self.http_password.clone()))
-            .header(reqwest::header::ContentType(mime::Mime(
-                mime::TopLevel::Multipart,
-                mime::SubLevel::FormData,
-                vec![
-                    (
-                        mime::Attr::Ext(String::from(BOUNDARY_ATTRIBUTE)),
-                        mime::Value::Ext(
-                            String::from(multipart_prepared.boundary()),
-                        )
-                    ),
-                ],
-            )))
-            .body(multipart_buffer)
-            .send()?;
+        let mut response = self.client.post(&url).multipart(form).send()?;
 
         // Process response
         self.check_response(&mut response)?;
@@ -207,7 +180,7 @@ pub fn download<P: AsRef<Path>>(
     repo_password: &str,
     database_filename: P,
 ) -> Result<Vec<u8>, UpmError> {
-    let mut repo = Repository::new(repo_url, repo_username, repo_password);
+    let mut repo = Repository::new(repo_url, repo_username, repo_password)?;
     let name = Database::path_to_name(&database_filename)?;
     repo.download(&name)
 }
@@ -277,7 +250,7 @@ pub fn sync(database: &Database, remote_password: Option<&str>) -> Result<SyncRe
         &database.sync_url,
         &sync_account.user,
         &sync_account.password,
-    );
+    )?;
     let remote_exists;
     let mut remote_database = match repo.download(database_name) {
         Ok(bytes) => {
@@ -317,10 +290,7 @@ pub fn sync(database: &Database, remote_password: Option<&str>) -> Result<SyncRe
 
         // Upload the local database to the remote.  Make sure to re-encrypt with the local
         // password, in case it has been changed recently.
-        repo.upload(
-            database_name,
-            database.save_to_bytes(local_password)?,
-        )?;
+        repo.upload(database_name, database.save_to_bytes(local_password)?)?;
         Ok(SyncResult::RemoteSynced)
     } else if database.sync_revision < remote_database.sync_revision {
         // Replace the local database with the remote database

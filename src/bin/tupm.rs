@@ -7,33 +7,33 @@ extern crate chrono;
 extern crate clap;
 #[macro_use(wrap_impl)]
 extern crate cursive;
+extern crate base64;
+extern crate dirs;
 extern crate rpassword;
 extern crate upm;
-extern crate base64;
 
-use std::env;
+use chrono::prelude::*;
+use clap::{App, Arg, ArgMatches};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process;
-use chrono::prelude::*;
-use clap::{Arg, App, ArgMatches};
 use tupm::controller::Controller;
-use upm::error::UpmError;
 use upm::database::Database;
+use upm::error::UpmError;
 use upm::sync;
 
 mod tupm {
+    pub mod clipboard;
     pub mod controller;
     pub mod ui;
-    pub mod clipboard;
 }
 
-static DEFAULT_DATABASE_DIRECTORY: &'static str = ".tupm";
-static DEFAULT_DATABASE_FILENAME: &'static str = "primary";
+const DEFAULT_DATABASE_DIRECTORY: &'static str = ".tupm";
+const DEFAULT_DATABASE_FILENAME: &'static str = "primary";
 
 // Possible exit codes
-static EXIT_SUCCESS: i32 = 0;
-static EXIT_FAILURE: i32 = 1;
+const EXIT_SUCCESS: i32 = 0;
+const EXIT_FAILURE: i32 = 1;
 
 // These functions supply optional fixed values for the database filename and password if built
 // with the test_database feature flag and invoked with the --test option.  This is a convenience
@@ -41,7 +41,7 @@ static EXIT_FAILURE: i32 = 1;
 
 #[cfg(feature = "test_database")]
 fn test_filename(matches: &ArgMatches) -> Option<PathBuf> {
-    static TEST_DB_FILE: &'static str = "sampledb.upm";
+    const TEST_DB_FILE: &'static str = "sampledb.upm";
     if matches.is_present("test") {
         Some(PathBuf::from(TEST_DB_FILE))
     } else {
@@ -54,7 +54,7 @@ fn test_filename(_: &ArgMatches) -> Option<PathBuf> {
 }
 #[cfg(feature = "test_database")]
 fn test_password(matches: &ArgMatches) -> Option<&'static str> {
-    static TEST_PASSWORD: &'static str = "my!awesome!password@42";
+    const TEST_PASSWORD: &'static str = "my!awesome!password@42";
     if matches.is_present("test") {
         Some(TEST_PASSWORD)
     } else {
@@ -71,7 +71,7 @@ fn test_password(_: &ArgMatches) -> Option<&'static str> {
 /// yet.
 fn get_default_database_path() -> Result<PathBuf, UpmError> {
     // Expand ~/.tupm based on the HOME environment variable
-    let mut path = match env::home_dir().map(|p| p.join(DEFAULT_DATABASE_DIRECTORY)) {
+    let mut path = match dirs::home_dir().map(|p| p.join(DEFAULT_DATABASE_DIRECTORY)) {
         Some(d) => d,
         None => return Err(UpmError::InvalidFilename),
     };
@@ -106,19 +106,19 @@ fn export(database: &Database) {
     println!("# {}", Local::now().format("%a %b %d %T %Y %Z"));
     println!(
         "# revision={} url={} credentials={}",
-        database.sync_revision,
-        database.sync_url,
-        database.sync_credentials
+        database.sync_revision, database.sync_url, database.sync_credentials
     );
 
     // Short-form output
-    macro_rules! exportfmt {() => ("{:-28} {:-35} {:-10}")};
+    macro_rules! exportfmt {
+        () => {
+            "{:-28} {:-35} {:-10}"
+        };
+    };
     println!(exportfmt!(), "account", "username", "password");
     println!(
         exportfmt!(),
-        "-------------------",
-        "----------------------------------",
-        "------------"
+        "-------------------", "----------------------------------", "------------"
     );
     for account in accounts.iter() {
         println!(exportfmt!(), account.name, account.user, account.password);
@@ -167,8 +167,7 @@ fn download(path: &Path, url: &str) {
     };
     println!(
         "Downloading remote database \"{}\" from repository \"{}\".",
-        database_name,
-        url
+        database_name, url
     );
 
     // Collect the repository credentials
@@ -204,9 +203,7 @@ fn main() {
     // Parse command-line arguments
     let app = App::new("Terminal Universal Password Manager")
         .version("0.1.0")
-        .about(
-            "Provides a terminal interface to Universal Password Manager (UPM) databases.",
-        )
+        .about("Provides a terminal interface to Universal Password Manager (UPM) databases.")
         .arg(
             Arg::with_name("database")
                 .short("d")
@@ -221,9 +218,12 @@ fn main() {
                 .long("password")
                 .help("Prompt for a password."),
         )
-        .arg(Arg::with_name("export").short("e").long("export").help(
-            "Export database to a flat text file.",
-        ))
+        .arg(
+            Arg::with_name("export")
+                .short("e")
+                .long("export")
+                .help("Export database to a flat text file."),
+        )
         .arg(
             Arg::with_name("download")
                 .short("l")
@@ -232,10 +232,13 @@ fn main() {
                 .help("Download a remote database.")
                 .takes_value(true),
         );
-    #[cfg(feature="test_database")]
-    let app = app.arg(Arg::with_name("test").short("t").long("test").help(
-        "Loads ./sampledb.upm with a baked-in password.",
-    ));
+    #[cfg(feature = "test_database")]
+    let app = app.arg(
+        Arg::with_name("test")
+            .short("t")
+            .long("test")
+            .help("Loads ./sampledb.upm with a baked-in password."),
+    );
     let matches = app.get_matches();
 
     // Determine the database path.

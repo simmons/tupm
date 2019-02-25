@@ -16,11 +16,11 @@
 //!    currently no limit on the number of backups stored on the remote server.
 //!
 
+use error::UpmError;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 use time;
-use error::UpmError;
 
 /// The maximum number of backups allowed for the local database.  Old backups will be pruned to
 /// keep the number of backups within this limit.
@@ -148,8 +148,8 @@ mod tests {
         const TIMESTAMP_LENGTH: usize = 14;
         const DECIMAL_RADIX: u32 = 10;
         let test_path_length = TEST_PATH.chars().count();
-        let expected_length = test_path_length + 1 + TIMESTAMP_LENGTH +
-            BACKUP_FILE_EXTENSION.chars().count();
+        let expected_length =
+            test_path_length + 1 + TIMESTAMP_LENGTH + BACKUP_FILE_EXTENSION.chars().count();
         let backup_time = time::now();
         let backup_filename = generate_backup_filename(TEST_PATH);
         assert_matches!(backup_filename, Ok(_));
@@ -158,7 +158,10 @@ mod tests {
         assert!(backup_filename.starts_with(TEST_PATH));
         assert!(backup_filename.ends_with(BACKUP_FILE_EXTENSION));
         assert_eq!(backup_filename.chars().count(), expected_length);
-        assert_matches!(backup_filename.chars().nth(TEST_PATH.chars().count()), Some('.'));
+        assert_matches!(
+            backup_filename.chars().nth(TEST_PATH.chars().count()),
+            Some('.')
+        );
 
         // Confirm that the timestamp is correctly rendered to represent the time we asked for the
         // backup filename, +/- 10 seconds.

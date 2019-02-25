@@ -35,9 +35,11 @@
 //!        4. URL
 //!        5. Notes
 
-use rand::{Rng, OsRng};
-use std::collections::HashSet;
+use crypto;
+use error::UpmError;
+use rand::{OsRng, Rng};
 use std::cmp::Ordering;
+use std::collections::HashSet;
 use std::fmt;
 use std::fs;
 use std::fs::File;
@@ -48,17 +50,15 @@ use std::path::{Path, PathBuf};
 use std::str;
 use std::time::Duration;
 use std::time::Instant;
-use error::UpmError;
-use crypto;
 
 /// The size in bytes of the UPM header magic field.
 const MAGIC_SIZE: usize = 3;
 /// The expected magic.
-static UPM_MAGIC: [u8; MAGIC_SIZE] = ['U' as u8, 'P' as u8, 'M' as u8];
+const UPM_MAGIC: [u8; MAGIC_SIZE] = ['U' as u8, 'P' as u8, 'M' as u8];
 /// The size in bytes of the UPM header version field.
 const UPM_DB_VERSION_SIZE: usize = 1;
 /// The expected database version.
-static UPM_DB_VERSION: u8 = 3;
+const UPM_DB_VERSION: u8 = 3;
 /// The size in bytes of the header salt field.
 const SALT_SIZE: usize = 8;
 
@@ -147,9 +147,9 @@ impl FlatpackParser {
                 Some(Ok(s)) => s,
                 Some(Err(e)) => return Err(e),
                 None => {
-                    return Err(UpmError::AccountParse(
-                        Some(String::from("record underrun")),
-                    ));
+                    return Err(UpmError::AccountParse(Some(String::from(
+                        "record underrun",
+                    ))));
                 }
             });
         }
@@ -188,7 +188,9 @@ struct FlatpackWriter {
 impl FlatpackWriter {
     /// Construct a new flatpack writer.
     fn new() -> FlatpackWriter {
-        FlatpackWriter { buffer: Vec::<u8>::new() }
+        FlatpackWriter {
+            buffer: Vec::<u8>::new(),
+        }
     }
 
     /// Add a record containing the provided bytes.
@@ -219,10 +221,7 @@ impl FlatpackWriter {
 
 /// This struct represents a single UPM account, and provides an ordering based on the
 /// alphanumeric case-insensitive comparison of account names.
-#[derive(Clone)]
-#[derive(Debug)]
-#[derive(PartialEq)]
-#[derive(Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Account {
     pub name: String,
     pub user: String,
@@ -334,9 +333,9 @@ impl Database {
         let sync_revision: u32 = match sync_revision.parse() {
             Ok(r) => r,
             Err(_) => {
-                return Err(UpmError::AccountParse(
-                    Some(String::from("cannot parse revision number")),
-                ))
+                return Err(UpmError::AccountParse(Some(String::from(
+                    "cannot parse revision number",
+                ))));
             }
         };
 
@@ -673,20 +672,20 @@ mod tests {
         assert_matches!(parser.next(), Some(Ok(ref s)) if s == RECORD_0 );
         assert!(parser.eof() == false);
         assert_matches!(parser.take3(),
-            Ok((ref a, ref b, ref c)) if
-                *a == format!("{}", RECORD_1) &&
-                *b == format!("{}", RECORD_2) &&
-                *c == format!("{}", RECORD_3)
-            );
+        Ok((ref a, ref b, ref c)) if
+            *a == format!("{}", RECORD_1) &&
+            *b == format!("{}", RECORD_2) &&
+            *c == format!("{}", RECORD_3)
+        );
         assert!(parser.eof() == false);
         assert_matches!(parser.take5(),
-            Ok((ref a, ref b, ref c, ref d, ref e)) if
-                (*a).as_bytes() == RECORD_4 &&
-                *b == format!("{}", RECORD_5) &&
-                *c == format!("{}", RECORD_6) &&
-                *d == format!("{}", RECORD_7) &&
-                *e == RECORD_8
-            );
+        Ok((ref a, ref b, ref c, ref d, ref e)) if
+            (*a).as_bytes() == RECORD_4 &&
+            *b == format!("{}", RECORD_5) &&
+            *c == format!("{}", RECORD_6) &&
+            *d == format!("{}", RECORD_7) &&
+            *e == RECORD_8
+        );
         assert!(parser.eof());
     }
 
@@ -731,7 +730,7 @@ mod tests {
         let mut expected_accounts: Vec<&str> = expected_accounts.to_vec();
         expected_accounts.sort();
         if accounts != expected_accounts {
-            panic!("expected: {:?} received: {:?}",expected_accounts,accounts);
+            panic!("expected: {:?} received: {:?}", expected_accounts, accounts);
         }
     }
 
@@ -852,8 +851,11 @@ mod tests {
         assert_matches!(Database::validate_path(&"file"), Ok(()));
         assert_matches!(Database::validate_path(&"/path/to/file"), Ok(()));
         assert_matches!(Database::validate_path(&"/path/to/dir/"), Ok(()));
-        assert_matches!(Database::validate_path(
-            &PathBuf::from(String::from_utf8(VALID_UTF8.to_vec()).unwrap())), Ok(())
+        assert_matches!(
+            Database::validate_path(&PathBuf::from(
+                String::from_utf8(VALID_UTF8.to_vec()).unwrap()
+            )),
+            Ok(())
         );
         // It's not obvious how to test paths with invalid Unicode encodings to make sure they
         // result in UpmError::PathNotUnicode.  Such a test would likely work differently on
