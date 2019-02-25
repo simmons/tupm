@@ -9,11 +9,11 @@ extern crate openssl_sys as ffi;
 use self::libc::{c_int, c_uchar};
 
 /// An error with lib `ERR_LIB_EVP` indicates the error was returned from an OpenSSL EVP function.
-static ERR_LIB_EVP: u8 = 6;
+const ERR_LIB_EVP: u8 = 6;
 
 /// An error with this reason code indicates a decryption failure, which usually means that the
 /// provided password was incorrect.
-static EVP_R_BAD_DECRYPT: u16 = 100;
+const EVP_R_BAD_DECRYPT: u16 = 100;
 
 /// Decompose an error code into a 3-tuple containing the library, function, and reason codes.
 fn decompose_error_code(code: u32) -> (u8, u16, u16) {

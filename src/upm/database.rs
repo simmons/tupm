@@ -54,11 +54,11 @@ use std::time::Instant;
 /// The size in bytes of the UPM header magic field.
 const MAGIC_SIZE: usize = 3;
 /// The expected magic.
-static UPM_MAGIC: [u8; MAGIC_SIZE] = ['U' as u8, 'P' as u8, 'M' as u8];
+const UPM_MAGIC: [u8; MAGIC_SIZE] = ['U' as u8, 'P' as u8, 'M' as u8];
 /// The size in bytes of the UPM header version field.
 const UPM_DB_VERSION_SIZE: usize = 1;
 /// The expected database version.
-static UPM_DB_VERSION: u8 = 3;
+const UPM_DB_VERSION: u8 = 3;
 /// The size in bytes of the header salt field.
 const SALT_SIZE: usize = 8;
 

@@ -22,16 +22,16 @@ use tupm::controller;
 use upm::database::{Account, Database};
 
 // View ids.  These are used to reference specific views within the Cursive view tree.
-static VIEW_ID_SELECT: &'static str = "select";
-static VIEW_ID_DETAIL: &'static str = "detail";
-static VIEW_ID_FILTER: &'static str = "filter";
-static VIEW_ID_REVISION: &'static str = "revision";
-static VIEW_ID_MODIFIED: &'static str = "modified";
-static VIEW_ID_COUNT: &'static str = "count";
-static VIEW_ID_STATUSLINE: &'static str = "statusline";
-static VIEW_ID_EDIT: &'static str = "edit";
-static VIEW_ID_MODAL: &'static str = "modal";
-static VIEW_ID_INPUT: &'static str = "input";
+const VIEW_ID_SELECT: &'static str = "select";
+const VIEW_ID_DETAIL: &'static str = "detail";
+const VIEW_ID_FILTER: &'static str = "filter";
+const VIEW_ID_REVISION: &'static str = "revision";
+const VIEW_ID_MODIFIED: &'static str = "modified";
+const VIEW_ID_COUNT: &'static str = "count";
+const VIEW_ID_STATUSLINE: &'static str = "statusline";
+const VIEW_ID_EDIT: &'static str = "edit";
+const VIEW_ID_MODAL: &'static str = "modal";
+const VIEW_ID_INPUT: &'static str = "input";
 
 // Human-readable field labels
 const FIELD_NAME: &'static str = "Account";
@@ -48,7 +48,7 @@ struct Field {
 }
 
 /// Provide a description of each account field.
-static FIELDS: [Field; 5] = [
+const FIELDS: [Field; 5] = [
     Field {
         name: FIELD_NAME,
         secret: false,

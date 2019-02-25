@@ -28,12 +28,12 @@ mod tupm {
     pub mod ui;
 }
 
-static DEFAULT_DATABASE_DIRECTORY: &'static str = ".tupm";
-static DEFAULT_DATABASE_FILENAME: &'static str = "primary";
+const DEFAULT_DATABASE_DIRECTORY: &'static str = ".tupm";
+const DEFAULT_DATABASE_FILENAME: &'static str = "primary";
 
 // Possible exit codes
-static EXIT_SUCCESS: i32 = 0;
-static EXIT_FAILURE: i32 = 1;
+const EXIT_SUCCESS: i32 = 0;
+const EXIT_FAILURE: i32 = 1;
 
 // These functions supply optional fixed values for the database filename and password if built
 // with the test_database feature flag and invoked with the --test option.  This is a convenience
@@ -41,7 +41,7 @@ static EXIT_FAILURE: i32 = 1;
 
 #[cfg(feature = "test_database")]
 fn test_filename(matches: &ArgMatches) -> Option<PathBuf> {
-    static TEST_DB_FILE: &'static str = "sampledb.upm";
+    const TEST_DB_FILE: &'static str = "sampledb.upm";
     if matches.is_present("test") {
         Some(PathBuf::from(TEST_DB_FILE))
     } else {
@@ -54,7 +54,7 @@ fn test_filename(_: &ArgMatches) -> Option<PathBuf> {
 }
 #[cfg(feature = "test_database")]
 fn test_password(matches: &ArgMatches) -> Option<&'static str> {
-    static TEST_PASSWORD: &'static str = "my!awesome!password@42";
+    const TEST_PASSWORD: &'static str = "my!awesome!password@42";
     if matches.is_present("test") {
         Some(TEST_PASSWORD)
     } else {

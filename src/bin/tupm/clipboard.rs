@@ -13,20 +13,20 @@ use std::path::PathBuf;
 use std::process;
 
 /// The environment variable used to store the system path.
-static PATH_ENV: &'static str = "PATH";
+const PATH_ENV: &'static str = "PATH";
 /// The environment variable used to store the X11 display.  If this environment variable is not
 /// set, we assume that we are not running in an X11 environment.
 #[cfg(target_os = "linux")]
-static DISPLAY_ENV: &'static str = "DISPLAY";
+const DISPLAY_ENV: &'static str = "DISPLAY";
 /// The name of the Mac OS `pbcopy` command used to copy data to the clipboard.
 #[cfg(target_os = "macos")]
-static PBCOPY_COMMAND: &'static str = "pbcopy";
+const PBCOPY_COMMAND: &'static str = "pbcopy";
 /// The name of the X11 `xsel` command used to copy data to the clipboard.
 #[cfg(target_os = "linux")]
-static XSEL_COMMAND: &'static str = "xsel";
+const XSEL_COMMAND: &'static str = "xsel";
 /// The name of the X11 `xclip` command used to copy data to the clipboard.
 #[cfg(target_os = "linux")]
-static XCLIP_COMMAND: &'static str = "xclip";
+const XCLIP_COMMAND: &'static str = "xclip";
 
 /// Attempt to find the specified command on the path.
 fn find_in_path(name: &str) -> Option<PathBuf> {
