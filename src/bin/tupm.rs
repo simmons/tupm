@@ -252,15 +252,15 @@ fn main() {
         }));
 
     // Determine the database password, if possible
-    let password = if matches.is_present("test") {
-        test_password(&matches).map(|p| String::from(p))
-    } else {
+    let password = if matches.is_present("password") {
         Some(
             rpassword::prompt_password_stdout("Password: ").unwrap_or_else(|e| {
                 println!("Error reading password: {}", e);
                 process::exit(EXIT_FAILURE);
             }),
         )
+    } else {
+        test_password(&matches).map(|p| String::from(p))
     };
 
     // Dispatch to non-UI tasks, if requested.
