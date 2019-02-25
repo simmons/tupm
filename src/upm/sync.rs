@@ -60,26 +60,18 @@ struct Repository {
 
 impl Repository {
     /// Create a new `Repository` struct with the provided URL and credentials.
-    fn new(url: &str, http_username: &str, http_password: &str) -> Repository {
+    fn new(url: &str, http_username: &str, http_password: &str) -> Result<Repository, UpmError> {
         // Create a new reqwest client.
-        let client = match reqwest::Client::builder()
+        let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(TIMEOUT_SECS))
-            .build()
-        {
-            Ok(cl) => cl,
-            Err(e) => {
-                let s = format!("Error creating a client: {}", e);
-                eprintln!("{}", s);
-                std::process::exit(1);
-            }
-        };
+            .build()?;
 
-        Repository {
+        Ok(Repository {
             url: String::from(url),
             http_username: String::from(http_username),
             http_password: String::from(http_password),
             client,
-        }
+        })
     }
 
     //
@@ -188,7 +180,7 @@ pub fn download<P: AsRef<Path>>(
     repo_password: &str,
     database_filename: P,
 ) -> Result<Vec<u8>, UpmError> {
-    let mut repo = Repository::new(repo_url, repo_username, repo_password);
+    let mut repo = Repository::new(repo_url, repo_username, repo_password)?;
     let name = Database::path_to_name(&database_filename)?;
     repo.download(&name)
 }
@@ -258,7 +250,7 @@ pub fn sync(database: &Database, remote_password: Option<&str>) -> Result<SyncRe
         &database.sync_url,
         &sync_account.user,
         &sync_account.password,
-    );
+    )?;
     let remote_exists;
     let mut remote_database = match repo.download(database_name) {
         Ok(bytes) => {
