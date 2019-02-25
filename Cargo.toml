@@ -37,13 +37,8 @@ rpassword = "0.4.0"
 chrono = "0.4"
 rand = "0.3.15"
 time = "0.1.38"
-multipart = "0.15.4"
 base64 = "0.7.0"
-# The multipart crate is using an old version of the mime crate before API
-# changes, so use an old version of reqwest for compatibility.  (Reqwest
-# uses mime by way of hyper.)
 reqwest = "0.9"
-mime = { version = "0.3", features = [ ] }
 
 # Crates used for testing
 [dev-dependencies]

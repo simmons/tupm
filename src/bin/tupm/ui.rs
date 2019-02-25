@@ -257,11 +257,7 @@ impl AccountSelectView {
 
     /// Return the currently selected account, if any.
     pub fn selection(&self) -> Option<Rc<Account>> {
-        if self.content.is_empty() {
-            None
-        } else {
-            self.content.selection()
-        }
+        self.content.selection()
     }
 
     /// Clear the list.

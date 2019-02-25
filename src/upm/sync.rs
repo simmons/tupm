@@ -2,10 +2,7 @@
 //! remote repository should be an HTTP or HTTPS server supporting the "download", "upload", and
 //! "delete" primitives of the UPM sync protocol.
 
-use multipart::client::lazy::Multipart;
-use multipart::server::nickel::nickel::hyper::mime;
 use reqwest::multipart;
-use std::io::Cursor;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::str;
@@ -31,6 +28,9 @@ const UPM_SUCCESS: &'static str = "OK";
 
 /// UPM sync protocol responses should never be longer than this size.
 const UPM_MAX_RESPONSE_CODE_LENGTH: usize = 64;
+
+/// The MIME type used when uploading a database.
+const DATABASE_MIME_TYPE: &'static str = "application/octet-stream";
 
 impl From<reqwest::Error> for UpmError {
     /// Convert a reqwest error into a `UpmError`.
@@ -133,32 +133,11 @@ impl Repository {
     fn upload(&mut self, database_name: &str, database_bytes: Vec<u8>) -> Result<(), UpmError> {
         let url: String = self.make_url(UPLOAD_CMD);
 
-        // Construct a multipart body
-        let mut multipart = Multipart::new();
-        let content_type = mime::Mime(
-            mime::TopLevel::Application,
-            mime::SubLevel::OctetStream,
-            vec![],
-        );
-        multipart.add_stream(
-            UPM_UPLOAD_FIELD_NAME,
-            Cursor::new(&database_bytes[..]),
-            Some(database_name),
-            Some(content_type),
-        );
-        let mut multipart_prepared = match multipart.prepare() {
-            Ok(p) => p,
-            Err(_) => return Err(UpmError::Sync(String::from("Cannot prepare file upload"))),
-        };
-        let mut multipart_buffer: Vec<u8> = vec![];
-        multipart_prepared.read_to_end(&mut multipart_buffer)?;
-
         // Thanks to Sean (seanmonstar) for helping to translate this code to multipart code
         // of reqwest
-        let dbname = database_name.to_string();
         let part = multipart::Part::bytes(database_bytes.clone())
-            .file_name(dbname)
-            .mime_str("application/octet-stream")?;
+            .file_name(database_name.to_string())
+            .mime_str(DATABASE_MIME_TYPE)?;
 
         let form = multipart::Form::new().part(UPM_UPLOAD_FIELD_NAME, part);
 
